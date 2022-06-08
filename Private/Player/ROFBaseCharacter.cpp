@@ -8,6 +8,8 @@
 #include "Component/RODHealthComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBaseCharacter, All, All);
 
@@ -23,6 +25,7 @@ AROFBaseCharacter::AROFBaseCharacter()
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
 	HealthComponent = CreateDefaultSubobject<URODHealthComponent>("HealthComponent");
+
 		}
 void AROFBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -31,12 +34,14 @@ void AROFBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAxis("MoveRight", this, &AROFBaseCharacter::MoveRight);
 	PlayerInputComponent->BindAxis("LookUp", this, &AROFBaseCharacter::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("TurnAround", this, &AROFBaseCharacter::AddControllerYawInput);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed,this,&AROFBaseCharacter::Jump);
 }
 
 void AROFBaseCharacter::MoveForward(float Amount)
 {
 	AddMovementInput(GetActorForwardVector(), Amount);
 }
+
 
 void AROFBaseCharacter::MoveRight(float Amount)
 {
@@ -46,24 +51,38 @@ void AROFBaseCharacter::OnDeath()
 {
 	UE_LOG(LogBaseCharacter, Display, TEXT("Player is dead: %s"), *GetName());
 	PlayAnimMontage(DeathAnimMontage);
-
+	UGameplayStatics::SpawnSound2D(this, DeathSound);
 	GetCharacterMovement()->DisableMovement();
 
 	SetLifeSpan(5.0f);
 }
+
+void AROFBaseCharacter::OnHealthChanged(float Health)
+{
+}
+
+void AROFBaseCharacter::OnGroundLanded(const FHitResult& Hit)
+{
+	const auto FallValocityZ = -GetCharacterMovement()->Velocity.Z;
+	if (FallValocityZ < LandedDamageVelocity.X) return;
+	const auto FinalDamage = FMath::GetMappedRangeValueClamped(LandedDamageVelocity, LandedDamage, FallValocityZ);
+	TakeDamage(FinalDamage, FDamageEvent(), nullptr, nullptr);
+}
+
 void AROFBaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	OnHealthChanged(HealthComponent->GetHealth());
 	HealthComponent->OnDeath.AddUObject(this, &AROFBaseCharacter::OnDeath);
+	HealthComponent->OnHealthChanged.AddUObject(this, &AROFBaseCharacter::OnHealthChanged);
 
-
+	LandedDelegate.AddDynamic(this, &AROFBaseCharacter::OnGroundLanded);
 }
 
 void AROFBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	const auto Health = HealthComponent->GetHealth();
 
 }
 

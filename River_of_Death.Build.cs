@@ -16,7 +16,6 @@ public class River_of_Death : ModuleRules
 			"InputCore",
 			"AIModule",
 			"Niagara", 
-			 /* Temporarily added GameplayTasks to workaround 4.12 compilation bug. */
 			"GameplayTasks",
 			"NavigationSystem"
 			
@@ -30,7 +29,8 @@ public class River_of_Death : ModuleRules
 			"River_of_Death/Public/Component",
 			"River_of_Death/Public/AI",
 			"River_of_Death/Public/AI/Task",
-			"River_of_Death/Public/AI/Services"
+			"River_of_Death/Public/AI/Services",
+			"River_of_Death/Public/Weapon"
 		});
 		
 	}
